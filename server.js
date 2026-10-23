@@ -5,9 +5,6 @@ const app = express();
 app.use(express.json());
 
 const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-    console.error("GEMINI_API_KEY is missing!");
-}
 
 app.get('/', (req, res) => {
     res.send('Roblox AI Server is running successfully!');
@@ -17,7 +14,11 @@ app.post('/generate-script', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) {
-            return res.status(400).json({ error: 'الرجاء إدخال الوصف' });
+            return res.status(400).json({ code: "-- الرجاء إدخال الوصف" });
+        }
+
+        if (!apiKey) {
+            return res.status(500).json({ code: "-- خطأ: مفتاح GEMINI_API_KEY غير موجود في إعدادات Render" });
         }
 
         const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -37,14 +38,14 @@ app.post('/generate-script', async (req, res) => {
 
         if (data.error) {
             console.error('Gemini API Error:', data.error);
-            return res.status(500).json({ error: data.error.message || 'خطأ من بوابة الذكاء الاصطناعي' });
+            return res.status(500).json({ code: "-- خطأ من جوجل: " + (data.error.message || "Unknown error") });
         }
 
-        const generatedCode = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const generatedCode = data.candidates?.[0]?.content?.parts?.[0]?.text || "-- لم يتم توليد أي كود";
         res.json({ code: generatedCode });
     } catch (error) {
         console.error('Error generating code:', error);
-        res.status(500).json({ error: error.message || 'حدث خطأ في السيرفر' });
+        res.status(500).json({ code: "-- خطأ في السيرفر: " + error.message });
     }
 });
 
