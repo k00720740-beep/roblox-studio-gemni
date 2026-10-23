@@ -24,7 +24,7 @@ app.post('/generate-script', async (req, res) => {
         }
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-1.5-flash',
             contents: prompt,
             config: {
                 systemInstruction: "You are an expert Roblox Luau script writer. Generate ONLY raw executable Luau code. Do not use markdown codeblocks like ```luau or ```, and do not add explanatory text.",
