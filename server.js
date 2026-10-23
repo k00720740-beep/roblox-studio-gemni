@@ -1,12 +1,10 @@
 require('dotenv').config();
 const express = require('express');
-const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 app.use(express.json());
 
 const apiKey = process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey: apiKey });
 
 app.get('/', (req, res) => {
     res.send('Roblox AI Server is running successfully!');
@@ -19,15 +17,31 @@ app.post('/generate-script', async (req, res) => {
             return res.status(400).json({ code: "-- الرجاء إدخال الوصف" });
         }
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction: "You are an expert Roblox Luau script writer. Generate ONLY raw executable Luau code without markdown codeblocks like ```luau or ```, and do not add explanatory text.",
-            }
+        if (!apiKey) {
+            return res.status(500).json({ code: "-- خطأ: مفتاح API غير موجود" });
+        }
+
+        const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                system_instruction: {
+                    parts: [{ text: "You are an expert Roblox Luau script writer. Generate ONLY raw executable Luau code without markdown codeblocks like ```luau or ```, and do not add explanatory text." }]
+                }
+            })
         });
 
-        const generatedCode = response.text || "-- لم يتم توليد أي كود";
+        const data = await apiResponse.json();
+
+        if (data.error) {
+            console.error('Gemini API Error:', data.error);
+            return res.status(500).json({ code: "-- خطأ من جوجل: " + (data.error.message || "Unknown error") });
+        }
+
+        const generatedCode = data.candidates?.[0]?.content?.parts?.[0]?.text || "-- لم يتم توليد أي كود";
         res.json({ code: generatedCode });
     } catch (error) {
         console.error('Error generating code:', error);
