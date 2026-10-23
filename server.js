@@ -14,14 +14,13 @@ app.post('/generate-script', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) {
-            return res.status(400).json({ code: "-- الرجاء إدخال الوصف" });
+            return res.json({ code: "-- خطأ: الرجاء إدخال الوصف" });
         }
 
         if (!apiKey) {
-            return res.status(500).json({ code: "-- خطأ: مفتاح API غير موجود" });
+            return res.json({ code: "-- خطأ: مفتاح GEMINI_API_KEY غير موجود في إعدادات Render" });
         }
 
-        // استخدام الـ v1 المستقر والسريع جداً لتفادي الـ Timeout في روبلوكس
         const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,14 +38,14 @@ app.post('/generate-script', async (req, res) => {
 
         if (data.error) {
             console.error('Gemini API Error:', data.error);
-            return res.status(500).json({ code: "-- خطأ من جوجل: " + (data.error.message || "Unknown error") });
+            return res.json({ code: "-- خطأ من جوجل: " + (data.error.message || "Unknown error") });
         }
 
         const generatedCode = data.candidates?.[0]?.content?.parts?.[0]?.text || "-- لم يتم توليد أي كود";
         res.json({ code: generatedCode });
     } catch (error) {
         console.error('Error generating code:', error);
-        res.status(500).json({ code: "-- خطأ في السيرفر: " + error.message });
+        res.json({ code: "-- خطأ في السيرفر: " + error.message });
     }
 });
 
